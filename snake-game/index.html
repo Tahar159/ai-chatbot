@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<title>🐍 Snake — JS Web Game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>🐍 Snake</h1>
+      <div class="hud">
+        <div class="stat"><span class="label">Score</span><span id="score">0</span></div>
+        <div class="stat"><span class="label">Best</span><span id="best">0</span></div>
+        <div class="stat"><span class="label">Speed</span><span id="speed">1</span></div>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="board-wrap">
+        <canvas id="board" width="480" height="480" aria-label="Snake game board"></canvas>
+
+        <!-- Overlay messages (start / paused / game over) -->
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <h2 id="overlayTitle">Ready to play?</h2>
+            <p id="overlayText">Use arrow keys or WASD. Press <kbd>Space</kbd> to pause.</p>
+            <button class="btn primary" id="overlayBtn">Start game</button>
+            <div class="overlay-hint">Tip: eat 🍎 to grow, avoid walls and yourself.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch controls (mobile) -->
+      <div class="touch-pad" id="touchPad" aria-hidden="true">
+        <button class="tpad up"    data-dir="up">▲</button>
+        <button class="tpad left"  data-dir="left">◀</button>
+        <button class="tpad right" data-dir="right">▶</button>
+        <button class="tpad down"  data-dir="down">▼</button>
+      </div>
+    </main>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>⚙️ Settings</h3>
+        <label class="row">
+          <span>Difficulty</span>
+          <select id="difficulty">
+            <option value="easy">Easy (slow)</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Hard (fast)</option>
+            <option value="insane">Insane (very fast)</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Board size</span>
+          <select id="boardSize">
+            <option value="15">15 × 15 (small)</option>
+            <option value="20" selected>20 × 20 (normal)</option>
+            <option value="25">25 × 25 (large)</option>
+            <option value="30">30 × 30 (huge)</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Theme</span>
+          <select id="theme">
+            <option value="classic" selected>Classic green</option>
+            <option value="neon">Neon</option>
+            <option value="dark">Dark mode</option>
+            <option value="candy">Candy</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Walls</span>
+          <select id="walls">
+            <option value="solid" selected>Solid (game over)</option>
+            <option value="wrap">Wrap around</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Food</span>
+          <select id="foodMode">
+            <option value="normal" selected>Normal (1 at a time)</option>
+            <option value="many">Many (up to 3)</option>
+          </select>
+        </label>
+        <label class="row checkbox">
+          <span>Show grid</span>
+          <input type="checkbox" id="showGrid" />
+        </label>
+        <label class="row checkbox">
+          <span>Mute sound</span>
+          <input type="checkbox" id="mute" />
+        </label>
+      </section>
+
+      <section class="panel">
+        <h3>🏆 High scores</h3>
+        <ol class="hi" id="hiScores">
+          <li class="empty">No scores yet — play your first game!</li>
+        </ol>
+      </section>
+
+      <section class="panel">
+        <h3>⌨️ Controls</h3>
+        <ul class="controls">
+          <li><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> or <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> — move</li>
+          <li><kbd>Space</kbd> — pause / resume</li>
+          <li><kbd>R</kbd> — restart</li>
+          <li><kbd>M</kbd> — mute</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Floating toast for achievements -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="game.js"></script>
+</body>
+</html>
