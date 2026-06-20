@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tahar Chatbot Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .markdown-body pre { background: #1e1e1e; border-radius: 0.5rem; padding: 1rem; margin: 0.5rem 0; overflow-x: auto; position: relative; }
+        .markdown-body code { font-family: monospace; font-size: 0.9em; }
+        .markdown-body p { margin-bottom: 0.75rem; }
+        .markdown-body ul, .markdown-body ol { margin-left: 1.5rem; margin-bottom: 0.75rem; list-style-type: disc; }
+
+        .code-block-wrapper { position: relative; margin: 0.5rem 0; }
+        .code-block-wrapper pre { margin: 0; }
+        .code-toolbar {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            z-index: 5;
+        }
+        .code-toolbar button {
+            background: rgba(45, 47, 52, 0.9);
+            color: #e3e3e3;
+            border: 1px solid #3c3d42;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            backdrop-filter: blur(4px);
+        }
+        .code-toolbar button:hover {
+            background: rgba(80, 70, 200, 0.9);
+            border-color: #6366f1;
+            color: white;
+        }
+        .code-toolbar button.copied {
+            background: rgba(16, 185, 129, 0.9);
+            border-color: #10b981;
+            color: white;
+        }
+        .code-language-label {
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(30, 30, 30, 0.85);
+            padding: 2px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        /* API Key modal polish */
+        .api-key-input {
+            background: #16171a;
+            border: 1px solid #3c3d42;
+            color: #e3e3e3;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+        .api-key-input:focus {
+            border-color: #8b5cf6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Camera source picker */
+        .cam-source-btn {
+            background: rgba(45, 47, 52, 0.9);
+            color: #e3e3e3;
+            border: 1px solid #3c3d42;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .cam-source-btn:hover { background: rgba(80, 70, 200, 0.9); border-color: #6366f1; color: white; }
+        .cam-source-btn.active { background: rgba(139, 92, 246, 0.9); border-color: #a78bfa; color: white; }
+    </style>
+</head>
+<body class="bg-[#111214] text-[#e3e3e3] font-sans h-screen flex flex-col overflow-hidden">
+
+    <header class="flex items-center justify-between px-6 py-3 border-b border-[#2d2f34] bg-[#1e1f20] z-10 shrink-0">
+        <div class="flex items-center space-x-3">
+            <button id="sidebarToggle" class="text-gray-400 hover:text-white mr-1 md:hidden">
+                <i class="fas fa-bars text-lg"></i>
+            </button>
+            <div class="bg-gradient-to-tr from-purple-500 to-indigo-500 w-8 h-8 rounded-full flex items-center justify-center shadow-md">
+                <i class="fas fa-brain text-white text-sm"></i>
+            </div>
+            <span class="font-semibold text-lg tracking-wide bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">tahar chatbot</span>
+            <span id="apiKeyBadge" class="hidden text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 ml-1">
+                <i class="fas fa-key mr-1"></i>Key Loaded
+            </span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="openKeyModalBtn" class="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#2d2f34]" title="Manage API Key">
+                <i class="fas fa-cog"></i> <span>API Key</span>
+            </button>
+            <button id="clearBtn" class="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#2d2f34]">
+                <i class="fas fa-trash-alt"></i> <span>Wipe All Sessions</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 h-full overflow-hidden w-full relative">
+
+        <aside id="sidebarPanel" class="w-64 bg-[#16171a] border-r border-[#2d2f34] flex flex-col shrink-0 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-20">
+            <div class="p-4 shrink-0">
+                <button id="newChatBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md">
+                    <i class="fas fa-plus text-xs"></i> New Chat
+                </button>
+            </div>
+            <div class="px-3 pb-2 text-[11px] font-bold tracking-wider text-gray-500 uppercase shrink-0">Recent Activity Logs</div>
+            <div id="sessionHistoryList" class="flex-1 overflow-y-auto px-2 space-y-1 pb-4">
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+            <main class="flex-1 overflow-y-auto px-4 py-6 md:px-0 flex flex-col items-center">
+                <div id="chatContainer" class="w-full max-w-3xl space-y-6 mb-36">
+                    <div id="welcomeScreen" class="flex flex-col items-center justify-center text-center pt-16 px-4 space-y-4">
+                        <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-emerald-400 bg-clip-text text-transparent">Welcome to your AI Studio</h1>
+                        <p class="text-gray-400 max-w-md text-sm">Upload documentation files, attach code scripts, generate Python code, or use the quick research macros down below to get started immediately.</p>
+                        <p id="welcomeKeyPrompt" class="hidden text-amber-300/90 text-xs mt-2 max-w-md">
+                            <i class="fas fa-exclamation-circle mr-1"></i> No API key detected. Click the <span class="font-semibold">API Key</span> button in the top right to set one.
+                        </p>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Camera modal -->
+            <div id="cameraModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+                <div class="bg-[#1e1f20] border border-[#3c3d42] rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl">
+                    <div class="p-4 border-b border-[#2d2f34] flex justify-between items-center bg-[#16171a]">
+                        <span class="text-sm font-semibold tracking-wide flex items-center gap-2"><i class="fas fa-video text-purple-400"></i> Live Camera Capture</span>
+                        <button type="button" id="closeCameraBtn" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <!-- Front / Rear toggle (large, above the video) -->
+                    <div class="px-3 pt-3 pb-2 bg-[#16171a] flex items-center gap-2">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-wider mr-1">Camera</span>
+                        <button type="button" id="frontCamBtn" class="cam-source-btn flex-1" data-facing="user">
+                            <i class="fas fa-user"></i> Front
+                        </button>
+                        <button type="button" id="rearCamBtn" class="cam-source-btn flex-1 active" data-facing="environment">
+                            <i class="fas fa-camera-retro"></i> Rear
+                        </button>
+                    </div>
+
+                    <div class="relative bg-black aspect-video flex items-center justify-center">
+                        <video id="cameraStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                        <div id="cameraErrorOverlay" class="hidden absolute inset-0 bg-black/85 flex flex-col items-center justify-center text-center px-4 text-xs text-gray-300 space-y-2">
+                            <i class="fas fa-exclamation-triangle text-amber-400 text-2xl"></i>
+                            <p id="cameraErrorText">No camera accessible.</p>
+                            <p class="text-[10px] text-gray-500 max-w-xs">Tip: on phones, use the mobile-camera button below the input to launch the system camera.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-[#16171a] flex items-center justify-between border-t border-[#2d2f34]">
+                        <!-- Big flip button (mobile-friendly) -->
+                        <button type="button" id="flipCameraBtn" class="text-gray-300 hover:text-white text-xs px-3 py-2 rounded-xl hover:bg-[#2d2f34] flex items-center gap-2">
+                            <i class="fas fa-sync-alt text-base"></i> Flip
+                        </button>
+                        <button type="button" id="snapPhotoBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-5 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors shadow-md">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <span class="text-[10px] text-gray-500 w-14 text-right font-semibold tracking-wider" id="activeCamLabel">FRONT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Source file preview chip -->
+            <div id="filePreviewContainer" class="hidden fixed bottom-[110px] left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-20">
+                <div class="bg-[#1e1f20] p-3 rounded-xl border border-[#3c3d42] flex justify-between items-center">
+                    <div class="flex items-center gap-3 truncate">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-file-code text-blue-400"></i>
+                        </div>
+                        <div class="flex flex-col truncate">
+                            <span class="text-xs text-blue-400 font-semibold">Python Script Staged</span>
+                            <span id="filePreviewName" class="text-[11px] text-gray-400 truncate">filename.py</span>
+                        </div>
+                    </div>
+                    <button type="button" id="removeFileBtn" class="text-gray-400 hover:text-red-400 p-2 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- API Key modal -->
+            <div id="apiKeyModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60]">
+                <div class="bg-[#1e1f20] border border-[#3c3d42] rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl">
+                    <div class="p-4 border-b border-[#2d2f34] flex justify-between items-center bg-[#16171a]">
+                        <span class="text-sm font-semibold tracking-wide flex items-center gap-2">
+                            <i class="fas fa-key text-purple-400"></i> Aliyun DashScope API Key
+                        </span>
+                        <button type="button" id="closeKeyModalBtn" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-5 space-y-4">
+                        <p class="text-xs text-gray-400 leading-relaxed">
+                            Your API key is stored only in <span class="text-gray-200 font-semibold">this browser's localStorage</span>.
+                            It is never sent to GitHub or any third party. Get a key from the
+                            <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener" class="text-purple-400 hover:text-purple-300 underline">Aliyun DashScope console</a>.
+                        </p>
+                        <div>
+                            <label for="apiKeyInput" class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">API Key</label>
+                            <input type="password" id="apiKeyInput" class="api-key-input w-full rounded-xl px-3 py-2.5 text-sm" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
+                            <div class="flex items-center justify-between mt-2">
+                                <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                                    <input type="checkbox" id="showKeyCheckbox" class="accent-purple-500">
+                                    Show key
+                                </label>
+                                <button type="button" id="clearStoredKeyBtn" class="text-xs text-red-400 hover:text-red-300 transition-colors">
+                                    <i class="fas fa-trash-alt mr-1"></i>Clear stored key
+                                </button>
+                            </div>
+                        </div>
+                        <p id="keyModalStatus" class="text-[11px] text-gray-500 min-h-[16px]"></p>
+                    </div>
+                    <div class="p-4 bg-[#16171a] flex gap-3 justify-end">
+                        <button type="button" id="closeKeyModalBtn2" class="text-gray-300 hover:text-white text-sm px-4 py-2 rounded-xl hover:bg-[#2d2f34]">Cancel</button>
+                        <button type="button" id="saveKeyBtn" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors">
+                            <i class="fas fa-save"></i> Save Key
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#111214] via-[#111214] to-transparent pt-4 pb-6 flex justify-center px-4 z-10 shrink-0">
+                <div class="w-full max-w-3xl relative flex flex-col items-center">
+
+                    <div id="pdfStatusBadge" class="w-full hidden bg-[#1e1f20] px-4 py-2.5 mb-2 rounded-xl border border-[#3c3d42] justify-between items-center text-xs">
+                        <div class="flex items-center gap-2 truncate mr-4">
+                            <i class="fas fa-file-pdf text-red-400 text-sm flex-shrink-0"></i>
+                            <span class="text-gray-400 font-medium flex-shrink-0">Knowledge Base context:</span>
+                            <span id="pdfStatus" class="text-purple-400 font-bold tracking-wide truncate">No file parsed</span>
+                        </div>
+                        <button type="button" id="removePdfBtn" class="text-gray-500 hover:text-red-400 p-1 transition-colors flex-shrink-0" title="Remove PDF text background context">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+
+                    <div id="mediaPreviewContainer" class="w-full hidden bg-[#1e1f20] p-3 mb-2 rounded-xl border border-[#3c3d42] justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <img id="imagePreview" class="h-14 w-14 rounded-lg object-cover border border-[#4b5563] hidden" src="" alt="Preview">
+                            <div class="flex flex-col">
+                                <span id="mediaTypeLabel" class="text-xs text-emerald-400 font-semibold">Media staged</span>
+                                <span id="mediaDetailLabel" class="text-[11px] text-gray-400 max-w-md truncate">Details</span>
+                            </div>
+                        </div>
+                        <button type="button" id="removeMediaBtn" class="text-gray-400 hover:text-red-400 p-2 transition-colors">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="w-full flex flex-wrap gap-2 mb-3 justify-start md:justify-center text-xs px-1 overflow-x-auto max-w-full pb-1 whitespace-nowrap">
+                        <button type="button" class="quick-action-btn bg-[#1e1f20] hover:bg-[#2d2f34] border border-[#2d2f34] text-gray-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm inline-block" data-prompt="Please review the active Aliyun documentation text attached above. Summarize its structural integration rules, parameter requirements, and provide a clean request example mapping to these guidelines.">
+                            <i class="fas fa-book text-orange-400"></i> Read Aliyun Docs
+                        </button>
+                        <button type="button" class="quick-action-btn bg-[#1e1f20] hover:bg-[#2d2f34] border border-[#2d2f34] text-gray-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm inline-block" data-prompt="Act as an expert Senior Aliyun Solutions Engineer. I need to design a highly scalable infrastructure setup using DashScope APIs. Explain how to prevent rate limits and optimize multi-modal execution.">
+                            <i class="fas fa-cloud text-blue-400"></i> Ask Aliyun Expert
+                        </button>
+                        <button type="button" class="quick-action-btn bg-[#1e1f20] hover:bg-[#2d2f34] border border-[#2d2f34] text-gray-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm inline-block" data-prompt="Extract the core components of the active research document: 1) Core Hypothesis/Problem statement, 2) Precise Methodology used, 3) Primary data results, 4) Critical flaws or next steps for subsequent research implementation.">
+                            <i class="fas fa-microscope text-purple-400"></i> Deep Research Guide
+                        </button>
+                        <button type="button" class="quick-action-btn bg-[#1e1f20] hover:bg-[#2d2f34] border border-[#2d2f34] text-gray-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm inline-block" data-prompt="Perform a complete code logic review on the provided source code context. Explain exactly what this script achieves, list each primary function block with its engineering purpose, and identify any architectural bottlenecks or optimization areas.">
+                            <i class="fas fa-code text-emerald-400"></i> Summarize Source Code
+                        </button>
+                        <button type="button" class="quick-action-btn bg-[#1e1f20] hover:bg-[#2d2f34] border border-[#2d2f34] text-gray-300 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-sm inline-block" data-prompt="Write a complete, ready-to-run Python script for the following task. Include proper imports, a main() function, a if __name__ == \"__main__\" guard, inline comments explaining each block, and a clear usage example. Wrap the entire code in a single ```python fenced codeblock so the download button appears. TASK: ">
+                            <i class="fab fa-python text-yellow-400"></i> Generate Python Code
+                        </button>
+                    </div>
+
+                    <form id="chatForm" class="w-full flex items-end bg-[#222327] border border-[#3c3d42] rounded-2xl px-4 py-3 shadow-2xl focus-within:border-gray-500 transition-colors">
+                        <div class="flex items-center gap-3.5 mr-2 pb-1">
+                            <!-- Album: shows OS picker (Take Photo / Choose from Library on phones) -->
+                            <input type="file" id="imageInput" accept="image/*" class="hidden">
+                            <button type="button" id="uploadImageBtn" class="text-gray-400 hover:text-emerald-400 transition-colors cursor-pointer" title="Upload from Gallery / Camera">
+                                <i class="fas fa-images text-xl"></i>
+                            </button>
+
+                            <!-- Live Camera: opens rear camera by default -->
+                            <button type="button" id="liveCameraTriggerBtn" class="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer" title="Take Live Photo (Rear Camera)">
+                                <i class="fas fa-camera text-xl"></i>
+                            </button>
+
+                            <input type="file" id="pdfFileInput" accept=".pdf" class="hidden">
+                            <button type="button" id="uploadPdfBtn" class="text-gray-400 hover:text-red-400 transition-colors cursor-pointer" title="Upload Document File (.pdf)">
+                                <i class="fas fa-file-pdf text-xl"></i>
+                            </button>
+
+                            <input type="file" id="pyFileInput" accept=".py,.txt,.js,.ts,.json,.html,.css,.md" class="hidden">
+                            <button type="button" id="uploadPyBtn" class="text-gray-400 hover:text-yellow-400 transition-colors cursor-pointer" title="Attach a Python / source file to the chat">
+                                <i class="fab fa-python text-xl"></i>
+                            </button>
+                        </div>
+
+                        <textarea id="userInput" rows="1" placeholder="Message Tahar Bot or choose a preset macro..." class="w-full bg-transparent outline-none resize-none text-white placeholder-gray-500 max-h-48 leading-relaxed text-[15px]"></textarea>
+
+                        <button type="submit" id="sendBtn" class="ml-3 bg-white text-black w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md" disabled>
+                            <i class="fas fa-arrow-up text-sm"></i>
+                        </button>
+                    </form>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+        const MAX_HISTORY_MESSAGES = 12;
+        const QWEN_MODEL = "qwen-vl-plus";
+        const API_KEY_STORAGE_KEY = "tahar_dashscope_api_key";
+
+        // === KEY VAULT ===========================================
+        function getApiKey() {
+            try { return localStorage.getItem(API_KEY_STORAGE_KEY) || ""; }
+            catch (e) { return ""; }
+        }
+        function setApiKey(k) {
+            try { localStorage.setItem(API_KEY_STORAGE_KEY, k); } catch (e) {}
+            updateKeyBadge();
+        }
+        function clearApiKey() {
+            try { localStorage.removeItem(API_KEY_STORAGE_KEY); } catch (e) {}
+            updateKeyBadge();
+        }
+        function updateKeyBadge() {
+            const badge = document.getElementById('apiKeyBadge');
+            const welcomePrompt = document.getElementById('welcomeKeyPrompt');
+            const hasKey = getApiKey().length > 0;
+            if (badge) badge.classList.toggle('hidden', !hasKey);
+            if (welcomePrompt) welcomePrompt.classList.toggle('hidden', hasKey);
+        }
+
+        // State Management Registers
+        let chatHistory = [];
+        let selectedImageBase64 = null;
+        let extractedPdfText = "";
+        let attachedSourceFile = null;
+        let currentSessionId = null;
+        let chatSessionsRegistry = {};
+        let localMediaStream = null;
+        let pyDownloadCounter = 0;
+        let activeCameraFacing = "environment"; // user | environment  (default: REAR camera)
+        let isMobileLike = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        // UI DOM Access Registry
+        const DOM = {
+            container: document.getElementById('chatContainer'),
+            welcome: document.getElementById('welcomeScreen'),
+            form: document.getElementById('chatForm'),
+            input: document.getElementById('userInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            sidebarPanel: document.getElementById('sidebarPanel'),
+            sidebarToggle: document.getElementById('sidebarToggle'),
+            newChatBtn: document.getElementById('newChatBtn'),
+            sessionHistoryList: document.getElementById('sessionHistoryList')
+        };
+
+        const imageInput = document.getElementById('imageInput');
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        const liveCameraTriggerBtn = document.getElementById('liveCameraTriggerBtn');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const mediaTypeLabel = document.getElementById('mediaTypeLabel');
+        const mediaDetailLabel = document.getElementById('mediaDetailLabel');
+        const removeMediaBtn = document.getElementById('removeMediaBtn');
+
+        const pdfFileInput = document.getElementById('pdfFileInput');
+        const removePdfBtn = document.getElementById('removePdfBtn');
+        const pdfStatus = document.getElementById('pdfStatus');
+        const pdfStatusBadge = document.getElementById('pdfStatusBadge');
+
+        const pyFileInput = document.getElementById('pyFileInput');
+        const uploadPyBtn = document.getElementById('uploadPyBtn');
+        const filePreviewContainer = document.getElementById('filePreviewContainer');
+        const filePreviewName = document.getElementById('filePreviewName');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+
+        // Live Camera Component DOM References
+        const cameraModal = document.getElementById('cameraModal');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        const cameraStream = document.getElementById('cameraStream');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const snapPhotoBtn = document.getElementById('snapPhotoBtn');
+        const cameraErrorOverlay = document.getElementById('cameraErrorOverlay');
+        const cameraErrorText = document.getElementById('cameraErrorText');
+        const camSourceButtons = document.querySelectorAll('.cam-source-btn');
+        const flipCameraBtn = document.getElementById('flipCameraBtn');
+        const frontCamBtn = document.getElementById('frontCamBtn');
+        const rearCamBtn = document.getElementById('rearCamBtn');
+        const activeCamLabel = document.getElementById('activeCamLabel');
+
+        // API Key modal DOM
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const openKeyModalBtn = document.getElementById('openKeyModalBtn');
+        const closeKeyModalBtn = document.getElementById('closeKeyModalBtn');
+        const closeKeyModalBtn2 = document.getElementById('closeKeyModalBtn2');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const showKeyCheckbox = document.getElementById('showKeyCheckbox');
+        const clearStoredKeyBtn = document.getElementById('clearStoredKeyBtn');
+        const keyModalStatus = document.getElementById('keyModalStatus');
+
+        function openKeyModal() {
+            apiKeyInput.value = getApiKey();
+            apiKeyInput.type = 'password';
+            showKeyCheckbox.checked = false;
+            keyModalStatus.textContent = getApiKey()
+                ? "An API key is currently saved on this device."
+                : "No key saved yet. Paste one above to enable the chatbot.";
+            apiKeyModal.classList.remove('hidden');
+            setTimeout(() => apiKeyInput.focus(), 50);
+        }
+        function closeKeyModal() {
+            apiKeyModal.classList.add('hidden');
+        }
+        openKeyModalBtn.addEventListener('click', openKeyModal);
+        closeKeyModalBtn.addEventListener('click', closeKeyModal);
+        closeKeyModalBtn2.addEventListener('click', closeKeyModal);
+        apiKeyModal.addEventListener('click', (e) => {
+            if (e.target === apiKeyModal) closeKeyModal();
+        });
+        showKeyCheckbox.addEventListener('change', () => {
+            apiKeyInput.type = showKeyCheckbox.checked ? 'text' : 'password';
+        });
+        saveKeyBtn.addEventListener('click', () => {
+            const v = apiKeyInput.value.trim();
+            if (!v) {
+                keyModalStatus.textContent = "Please paste a valid key first.";
+                keyModalStatus.className = "text-[11px] text-amber-400 min-h-[16px]";
+                return;
+            }
+            if (!v.startsWith('sk-')) {
+                keyModalStatus.textContent = "That doesn't look like a DashScope key (should start with sk-).";
+                keyModalStatus.className = "text-[11px] text-amber-400 min-h-[16px]";
+                return;
+            }
+            setApiKey(v);
+            keyModalStatus.textContent = "Saved locally. You can close this dialog.";
+            keyModalStatus.className = "text-[11px] text-emerald-400 min-h-[16px]";
+            setTimeout(closeKeyModal, 700);
+        });
+        apiKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveKeyBtn.click(); }
+        });
+        clearStoredKeyBtn.addEventListener('click', () => {
+            if (confirm("Remove the saved API key from this browser?")) {
+                clearApiKey();
+                apiKeyInput.value = '';
+                keyModalStatus.textContent = "Key cleared.";
+                keyModalStatus.className = "text-[11px] text-red-400 min-h-[16px]";
+            }
+        });
+
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    if (lang && Prism.languages[lang]) {
+                        try { return Prism.highlight(code, Prism.languages[lang], lang); }
+                        catch (e) { return code; }
+                    }
+                    return code;
+                },
+                breaks: true,
+                gfm: true
+            });
+        }
+
+        function loadSessionsFromLocalStorage() {
+            const rawSessions = localStorage.getItem('qwen_bot_sessions_vault');
+            if (rawSessions) {
+                chatSessionsRegistry = JSON.parse(rawSessions);
+            } else {
+                chatSessionsRegistry = {};
+            }
+            renderSidebarSessions();
+        }
+
+        function saveSessionsToLocalStorage() {
+            localStorage.setItem('qwen_bot_sessions_vault', JSON.stringify(chatSessionsRegistry));
+            renderSidebarSessions();
+        }
+
+        function renderSidebarSessions() {
+            DOM.sessionHistoryList.innerHTML = '';
+            const sortedKeys = Object.keys(chatSessionsRegistry).sort((a, b) => b - a);
+
+            if (sortedKeys.length === 0) {
+                DOM.sessionHistoryList.innerHTML = `<div class="text-xs text-gray-600 italic text-center pt-4">No logged records.</div>`;
+                return;
+            }
+
+            sortedKeys.forEach(sessionId => {
+                const sessionData = chatSessionsRegistry[sessionId];
+                const itemRow = document.createElement('div');
+                const isActive = (sessionId === currentSessionId);
+
+                itemRow.className = `group flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                    isActive ? 'bg-[#2d2f34] text-white font-medium' : 'text-gray-400 hover:bg-[#1e1f20] hover:text-gray-200'
+                }`;
+
+                const displayTitle = sessionData.title || "Context Dialogue";
+
+                itemRow.innerHTML = `
+                    <div class="flex items-center gap-2 truncate flex-1 select-none pr-1">
+                        <i class="fas fa-comment-alt text-gray-500 group-hover:text-purple-400 transition-colors shrink-0"></i>
+                        <span class="truncate">${displayTitle}</span>
+                    </div>
+                    <button class="delete-session-btn opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity px-1 py-0.5" data-id="${sessionId}">
+                        <i class="fas fa-trash-alt text-[10px]"></i>
+                    </button>
+                `;
+
+                itemRow.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-session-btn')) return;
+                    loadActiveChatSession(sessionId);
+                    DOM.sidebarPanel.classList.add('-translate-x-full');
+                });
+
+                const deleteBtn = itemRow.querySelector('.delete-session-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm("Delete this conversation path logs permanently?")) {
+                        deleteChatSession(sessionId);
+                    }
+                });
+
+                DOM.sessionHistoryList.appendChild(itemRow);
+            });
+        }
+
+        function loadActiveChatSession(sessionId) {
+            currentSessionId = sessionId;
+            chatHistory = chatSessionsRegistry[sessionId].history || [];
+
+            extractedPdfText = chatSessionsRegistry[sessionId].associatedPdfText || "";
+            const attachedTitle = chatSessionsRegistry[sessionId].associatedPdfTitle || "";
+
+            if (extractedPdfText && attachedTitle) {
+                setPdfInterfaceState(attachedTitle);
+            } else {
+                clearPdfUIState();
+            }
+
+            DOM.container.innerHTML = '';
+            if (chatHistory.length === 0) {
+                DOM.container.appendChild(DOM.welcome);
+                DOM.welcome.classList.remove('hidden');
+            } else {
+                DOM.welcome.classList.add('hidden');
+                chatHistory.forEach(msg => {
+                    let renderableText = "";
+                    if (Array.isArray(msg.content)) {
+                        const textObj = msg.content.find(item => item.type === "text");
+                        if (textObj) {
+                            renderableText = textObj.text;
+                            if (renderableText.includes("[BACKGROUND CONTEXT FROM UPLOADED PDF DOCUMENT]")) {
+                                const indexMarker = renderableText.indexOf("[USER QUESTION / DIRECTION]:\n");
+                                if (indexMarker !== -1) {
+                                    renderableText = renderableText.substring(indexMarker + 29);
+                                }
+                            }
+                        }
+                    } else {
+                        renderableText = msg.content;
+                    }
+                    appendMessage(msg.role, renderableText);
+                });
+            }
+            renderSidebarSessions();
+        }
+
+        function deleteChatSession(sessionId) {
+            delete chatSessionsRegistry[sessionId];
+            if (currentSessionId === sessionId) {
+                currentSessionId = null;
+                chatHistory = [];
+                extractedPdfText = "";
+                clearPdfUIState();
+                DOM.container.innerHTML = '';
+                DOM.container.appendChild(DOM.welcome);
+                DOM.welcome.classList.remove('hidden');
+            }
+            saveSessionsToLocalStorage();
+        }
+
+        function initializeNewChatSession() {
+            currentSessionId = null;
+            chatHistory = [];
+            extractedPdfText = "";
+            clearAttachedSourceFile();
+            clearPdfUIState();
+            DOM.container.innerHTML = '';
+            DOM.container.appendChild(DOM.welcome);
+            DOM.welcome.classList.remove('hidden');
+            renderSidebarSessions();
+        }
+
+        DOM.sidebarToggle.addEventListener('click', () => {
+            DOM.sidebarPanel.classList.toggle('-translate-x-full');
+        });
+
+        DOM.newChatBtn.addEventListener('click', () => {
+            initializeNewChatSession();
+        });
+
+        function evaluateButtonStatus() {
+            const hasText = DOM.input.value.trim().length > 0;
+            const hasImage = selectedImageBase64 !== null;
+            const hasPdf = extractedPdfText.length > 0;
+            const hasFile = attachedSourceFile !== null;
+            DOM.sendBtn.disabled = !(hasText || hasImage || hasPdf || hasFile);
+        }
+
+        DOM.input.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+            evaluateButtonStatus();
+        });
+
+        document.querySelectorAll('.quick-action-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                DOM.input.value = button.getAttribute('data-prompt');
+                DOM.input.style.height = 'auto';
+                DOM.input.style.height = Math.min(DOM.input.scrollHeight, 200) + 'px';
+                evaluateButtonStatus();
+                DOM.input.focus();
+            });
+        });
+
+        // ===========================================================
+        // IMAGE INPUT — gallery / camera-roll picker
+        // ===========================================================
+        uploadImageBtn.addEventListener('click', () => {
+            // No capture attr => OS shows the "Photo Library" / "Choose file" picker
+            imageInput.removeAttribute('capture');
+            imageInput.click();
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedImageBase64 = event.target.result;
+                imagePreview.src = selectedImageBase64;
+                imagePreview.classList.remove('hidden');
+                mediaTypeLabel.innerText = isMobileLike ? "Photo Selected" : "Photo Selected (Album)";
+                mediaTypeLabel.className = "text-xs text-emerald-400 font-semibold";
+                mediaDetailLabel.innerText = file.name;
+                mediaPreviewContainer.classList.replace('hidden', 'flex');
+                evaluateButtonStatus();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // ===========================================================
+        // MOBILE CAMERA SHORTCUTS
+        // ===========================================================
+        // LIVE CAMERA MODAL (with Front/Rear toggle + Flip button)
+        // For desktops / laptops / tablets. Live preview, take any
+        // number of shots, then close to send.
+        // ===========================================================
+        liveCameraTriggerBtn.addEventListener('click', async () => {
+            // Default to the REAR camera every time the user opens the modal
+            setActiveCameraFacing("environment");
+            cameraErrorOverlay.classList.add('hidden');
+            cameraModal.classList.remove('hidden');
+            await startCameraStream("environment");
+        });
+
+        // Front / Rear pill buttons
+        camSourceButtons.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const facing = btn.getAttribute('data-facing');
+                setActiveCameraFacing(facing);
+                await startCameraStream(facing);
+            });
+        });
+
+        // Big "Flip" button (mobile-friendly)
+        flipCameraBtn.addEventListener('click', async () => {
+            const next = activeCameraFacing === 'user' ? 'environment' : 'user';
+            setActiveCameraFacing(next);
+            await startCameraStream(next);
+        });
+
+        function setActiveCameraFacing(facing) {
+            activeCameraFacing = facing;
+            camSourceButtons.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-facing') === facing);
+            });
+            // Update the small label in the bottom-right of the modal
+            if (activeCamLabel) {
+                activeCamLabel.textContent = facing === 'user' ? 'FRONT' : 'REAR';
+                activeCamLabel.className = facing === 'user'
+                    ? 'text-[10px] text-pink-400 w-14 text-right font-semibold tracking-wider'
+                    : 'text-[10px] text-emerald-400 w-14 text-right font-semibold tracking-wider';
+            }
+        }
+
+        async function startCameraStream(facing) {
+            // Tear down any existing stream first
+            shutDownCameraHardware(false);
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraErrorText.textContent = "Camera API not supported in this browser.";
+                cameraErrorOverlay.classList.remove('hidden');
+                return;
+            }
+            // Try multiple constraint shapes — Android/Chrome, iOS Safari, and
+            // desktops all behave slightly differently.
+            const candidates = [
+                { video: { facingMode: { exact: facing } }, audio: false },
+                { video: { facingMode: { ideal: facing } }, audio: false },
+                { video: true, audio: false }
+            ];
+            for (const constraints of candidates) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    localMediaStream = stream;
+                    cameraStream.srcObject = stream;
+                    // Front camera preview should be mirrored so the user sees
+                    // a natural "selfie" view. Rear camera is shown as-is.
+                    cameraStream.style.transform = (facing === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+                    cameraErrorOverlay.classList.add('hidden');
+                    return;
+                } catch (err) {
+                    // try next candidate
+                }
+            }
+            // All attempts failed
+            cameraErrorText.textContent =
+                "Cannot open camera. Check browser permissions, or use the " +
+                "📱 mobile-camera buttons on phones, or the gallery upload instead.";
+            cameraErrorOverlay.classList.remove('hidden');
+        }
+
+        function shutDownCameraHardware(hideModal = true) {
+            if (localMediaStream) {
+                localMediaStream.getTracks().forEach(track => track.stop());
+                localMediaStream = null;
+            }
+            cameraStream.srcObject = null;
+            if (hideModal) cameraModal.classList.add('hidden');
+        }
+
+        closeCameraBtn.addEventListener('click', () => shutDownCameraHardware(true));
+
+        snapPhotoBtn.addEventListener('click', () => {
+            if (!cameraStream.srcObject) return;
+
+            cameraCanvas.width = cameraStream.videoWidth || 640;
+            cameraCanvas.height = cameraStream.videoHeight || 480;
+            const ctx = cameraCanvas.getContext('2d');
+
+            // If the <video> is currently being mirrored via CSS for the
+            // front-camera preview, undo the mirror on capture so the
+            // saved image is correctly oriented (text readable, etc.).
+            if (activeCameraFacing === "user") {
+                ctx.translate(cameraCanvas.width, 0);
+                ctx.scale(-1, 1);
+            }
+            ctx.drawImage(cameraStream, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            selectedImageBase64 = cameraCanvas.toDataURL('image/jpeg');
+            imagePreview.src = selectedImageBase64;
+            imagePreview.classList.remove('hidden');
+
+            mediaTypeLabel.innerText = activeCameraFacing === "environment"
+                ? "Rear Camera Snapshot"
+                : "Front Camera Snapshot";
+            mediaTypeLabel.className = "text-xs text-emerald-400 font-semibold";
+            mediaDetailLabel.innerText = `snapshot_${Date.now()}.jpg`;
+            mediaPreviewContainer.classList.replace('hidden', 'flex');
+
+            shutDownCameraHardware(true);
+            evaluateButtonStatus();
+        });
+
+        removeMediaBtn.addEventListener('click', () => {
+            selectedImageBase64 = null;
+            imageInput.value = '';
+            imagePreview.classList.add('hidden');
+            mediaPreviewContainer.classList.replace('flex', 'hidden');
+            evaluateButtonStatus();
+        });
+
+        // --- PYTHON / SOURCE FILE ATTACHMENT LOGIC ---
+        uploadPyBtn.addEventListener('click', () => pyFileInput.click());
+
+        function inferLanguageFromFilename(filename) {
+            const ext = (filename.split('.').pop() || '').toLowerCase();
+            const map = {
+                'py': 'python', 'js': 'javascript', 'ts': 'typescript',
+                'json': 'json', 'html': 'html', 'css': 'css',
+                'md': 'markdown', 'txt': 'text', 'sh': 'bash',
+                'java': 'java', 'c': 'c', 'cpp': 'cpp', 'cs': 'csharp',
+                'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
+                'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml', 'xml': 'xml'
+            };
+            return map[ext] || 'text';
+        }
+
+        pyFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 1024 * 1024) {
+                alert("Source file is too large (max 1 MB). Please attach a smaller file.");
+                pyFileInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                attachedSourceFile = {
+                    name: file.name,
+                    content: event.target.result,
+                    lang: inferLanguageFromFilename(file.name)
+                };
+                filePreviewName.innerText = file.name;
+                filePreviewContainer.classList.remove('hidden');
+                evaluateButtonStatus();
+            };
+            reader.readAsText(file);
+        });
+
+        function clearAttachedSourceFile() {
+            attachedSourceFile = null;
+            pyFileInput.value = '';
+            filePreviewContainer.classList.add('hidden');
+        }
+
+        removeFileBtn.addEventListener('click', () => {
+            clearAttachedSourceFile();
+            evaluateButtonStatus();
+        });
+
+        // --- PDF PARSING ---
+        uploadPdfBtn.addEventListener('click', () => pdfFileInput.click());
+        pdfFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            pdfStatusBadge.classList.replace('hidden', 'flex');
+            pdfStatus.innerHTML = '<i class="fas fa-circle-notch fa-spin text-purple-400 mr-1"></i> Parsing system layers...';
+            uploadPdfBtn.disabled = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let collectiveText = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContext = await page.getTextContent();
+                    const pageStrings = textContext.items.map(item => item.str).join(" ");
+                    collectiveText += pageStrings + "\n";
+                }
+
+                const cleanedText = collectiveText.trim();
+                if (cleanedText.length === 0) {
+                    alert("⚠️ WARNING: Scanned document layout detected (0 textual characters parsed).");
+                    pdfStatus.innerText = "Error: Text unreadable";
+                    return;
+                }
+
+                extractedPdfText = cleanedText;
+                setPdfInterfaceState(file.name);
+
+                if (currentSessionId) {
+                    chatSessionsRegistry[currentSessionId].associatedPdfText = extractedPdfText;
+                    chatSessionsRegistry[currentSessionId].associatedPdfTitle = file.name;
+                    localStorage.setItem('qwen_bot_sessions_vault', JSON.stringify(chatSessionsRegistry));
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("Could not process PDF file.");
+                clearPdfUIState();
+            } finally {
+                uploadPdfBtn.disabled = false;
+                pdfFileInput.value = '';
+                evaluateButtonStatus();
+            }
+        });
+
+        removePdfBtn.addEventListener('click', () => {
+            extractedPdfText = "";
+            clearPdfUIState();
+            if (currentSessionId) {
+                chatSessionsRegistry[currentSessionId].associatedPdfText = "";
+                chatSessionsRegistry[currentSessionId].associatedPdfTitle = "";
+                localStorage.setItem('qwen_bot_sessions_vault', JSON.stringify(chatSessionsRegistry));
+            }
+            evaluateButtonStatus();
+        });
+
+        function setPdfInterfaceState(title) {
+            pdfStatus.innerText = title;
+            pdfStatusBadge.classList.replace('hidden', 'flex');
+        }
+
+        function clearPdfUIState() {
+            pdfStatus.innerText = "No file parsed";
+            pdfStatusBadge.classList.replace('flex', 'hidden');
+        }
+
+        DOM.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if(!DOM.sendBtn.disabled) DOM.form.requestSubmit();
+            }
+        });
+
+        DOM.clearBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear ALL chat history logs stored inside your web browser? This cannot be undone.")) {
+                localStorage.removeItem('qwen_bot_sessions_vault');
+                chatSessionsRegistry = {};
+                initializeNewChatSession();
+            }
+        });
+
+        // ===========================================================
+        // PYTHON / CODE FILE DOWNLOAD HELPERS
+        // ===========================================================
+
+        function deriveFilenameFromCode(code, fallbackBase) {
+            const lines = code.split('\n');
+            for (let i = 0; i < Math.min(lines.length, 5); i++) {
+                const line = lines[i].trim();
+                const m = line.match(/(?:#|\/\/)\s*(?:filename|file)\s*[:=]\s*["']?([\w\-./\\]+\.[a-zA-Z0-9]+)["']?/i);
+                if (m && m[1]) return m[1];
+            }
+            return fallbackBase;
+        }
+
+        function extensionForLanguage(lang) {
+            const map = {
+                'python': 'py', 'py': 'py',
+                'javascript': 'js', 'js': 'js',
+                'typescript': 'ts', 'ts': 'ts',
+                'json': 'json',
+                'html': 'html',
+                'css': 'css',
+                'markdown': 'md', 'md': 'md',
+                'bash': 'sh', 'shell': 'sh', 'sh': 'sh',
+                'java': 'java',
+                'c': 'c',
+                'cpp': 'cpp', 'c++': 'cpp',
+                'csharp': 'cs', 'cs': 'cs',
+                'go': 'go',
+                'rust': 'rs', 'rs': 'rs',
+                'ruby': 'rb', 'rb': 'rb',
+                'php': 'php',
+                'sql': 'sql',
+                'yaml': 'yaml', 'yml': 'yaml',
+                'xml': 'xml',
+                'text': 'txt', 'plaintext': 'txt', 'plain': 'txt'
+            };
+            return map[(lang || '').toLowerCase()] || 'txt';
+        }
+
+        function timestampedFilename(base, ext) {
+            const safeBase = (base || 'script').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'script';
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+            return `${safeBase}_${stamp}.${ext}`;
+        }
+
+        function triggerCodeDownload(code, language) {
+            const ext = extensionForLanguage(language);
+            let baseName = deriveFilenameFromCode(code, `tahar_script_${++pyDownloadCounter}`);
+            if (!/\.[a-zA-Z0-9]+$/.test(baseName)) {
+                baseName = `${baseName.replace(/\.$/, '')}.${ext}`;
+            }
+            const finalName = /\d/.test(baseName) || baseName.includes('_')
+                ? baseName
+                : timestampedFilename(baseName.replace(/\.[^.]+$/, ''), ext);
+
+            const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = finalName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+
+        function decorateCodeBlocks(containerElement) {
+            const codeBlocks = containerElement.querySelectorAll('pre > code');
+            codeBlocks.forEach((codeEl) => {
+                if (codeEl.parentElement.classList.contains('code-block-wrapper')) return;
+
+                const pre = codeEl.parentElement;
+                let lang = '';
+                codeEl.classList.forEach(cls => {
+                    if (cls.startsWith('language-')) lang = cls.substring(9);
+                });
+                if (!lang && pre.className) {
+                    const m = pre.className.match(/language-([\w+#-]+)/);
+                    if (m) lang = m[1];
+                }
+                if (!lang) lang = 'text';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block-wrapper';
+                pre.parentNode.insertBefore(wrapper, pre);
+                wrapper.appendChild(pre);
+
+                const langLabel = document.createElement('span');
+                langLabel.className = 'code-language-label';
+                langLabel.textContent = lang;
+                wrapper.appendChild(langLabel);
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'code-toolbar';
+
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i><span>Copy</span>';
+                copyBtn.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(codeEl.innerText);
+                        copyBtn.classList.add('copied');
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i><span>Copied</span>';
+                        setTimeout(() => {
+                            copyBtn.classList.remove('copied');
+                            copyBtn.innerHTML = '<i class="fas fa-copy"></i><span>Copy</span>';
+                        }, 1500);
+                    } catch (err) {
+                        console.error('Clipboard write failed', err);
+                    }
+                });
+
+                const dlBtn = document.createElement('button');
+                const dlLabel = (lang === 'python' || lang === 'py') ? 'Download .py' : `Download .${extensionForLanguage(lang)}`;
+                dlBtn.type = 'button';
+                dlBtn.innerHTML = `<i class="fas fa-download"></i><span>${dlLabel}</span>`;
+                dlBtn.addEventListener('click', () => {
+                    triggerCodeDownload(codeEl.innerText, lang);
+                });
+
+                toolbar.appendChild(copyBtn);
+                toolbar.appendChild(dlBtn);
+                wrapper.appendChild(toolbar);
+            });
+        }
+
+        function appendMessage(role, text) {
+            DOM.welcome.classList.add('hidden');
+            const row = document.createElement('div');
+            row.className = `flex w-full items-start gap-4 p-4 rounded-xl ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const box = document.createElement('div');
+            box.className = `max-w-2xl px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed shadow-md ${
+                role === 'user' ? 'bg-[#2f3037] text-white rounded-br-none' : 'bg-transparent text-[#e3e3e3] markdown-body w-full'
+            }`;
+
+            if (role === 'user') {
+                box.innerHTML = text;
+            } else {
+                const htmlOutput = marked.parse(text);
+                box.innerHTML = DOMPurify.sanitize(htmlOutput);
+                setTimeout(() => {
+                    if (typeof Prism !== 'undefined') {
+                        Prism.highlightAllUnder(box);
+                    }
+                    decorateCodeBlocks(box);
+                }, 10);
+            }
+
+            if (role !== 'user') {
+                const botAvatar = document.createElement('div');
+                botAvatar.className = "w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white text-xs mt-1";
+                botAvatar.innerHTML = '<i class="fas fa-robot"></i>';
+                row.appendChild(botAvatar);
+            }
+
+            row.appendChild(box);
+            DOM.container.appendChild(row);
+            DOM.container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            return box;
+        }
+
+        async function fetchWithRetry(url, options, retries = 2) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP Error Status ${response.status}`);
+                    return await response.json();
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        DOM.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInputText = DOM.input.value.trim();
+
+            const ALIYUN_API_KEY = getApiKey();
+            if (!ALIYUN_API_KEY) {
+                appendMessage('assistant',
+                    '<span class="text-amber-300"><i class="fas fa-key mr-2"></i>No API key is set on this device. Click the <b>API Key</b> button in the top right and paste your Aliyun DashScope key to start chatting.</span>'
+                );
+                openKeyModal();
+                return;
+            }
+
+            if (!currentSessionId) {
+                currentSessionId = Date.now().toString();
+                let promptSnippet = messageInputText ? messageInputText.substring(0, 26) + "..." : "Multimodal Material Context Stream";
+                chatSessionsRegistry[currentSessionId] = {
+                    title: promptSnippet,
+                    history: [],
+                    associatedPdfText: extractedPdfText,
+                    associatedPdfTitle: extractedPdfText ? "Uploaded Context File" : ""
+                };
+            }
+
+            let contentPayload = [];
+            let visualChatDisplayMessage = messageInputText;
+
+            let processedPromptText = messageInputText;
+            if (extractedPdfText) {
+                processedPromptText = `[BACKGROUND CONTEXT FROM UPLOADED PDF DOCUMENT]:\n${extractedPdfText}\n\n[USER QUESTION / DIRECTION]:\n${messageInputText || "Analyze the provided material alongside document references."}`;
+            }
+
+            if (attachedSourceFile) {
+                const fileBlock = `[ATTACHED SOURCE FILE: ${attachedSourceFile.name} (language: ${attachedSourceFile.lang})]\n\`\`\`${attachedSourceFile.lang}\n${attachedSourceFile.content}\n\`\`\`\n`;
+                processedPromptText = (processedPromptText
+                    ? fileBlock + "\n[USER QUESTION / DIRECTION]:\n" + processedPromptText
+                    : fileBlock + "\nPlease analyze this file and explain what it does."
+                );
+            }
+
+            if (selectedImageBase64) {
+                contentPayload.push({
+                    "type": "image_url",
+                    "image_url": { "url": selectedImageBase64 }
+                });
+                visualChatDisplayMessage = `<div class="flex items-center gap-2 mb-1.5 text-xs text-emerald-400 font-semibold"><i class="fas fa-camera"></i> Attached Photo Analyzed</div>` + (messageInputText || `<span class="italic text-gray-400">Inspecting uploaded image file...</span>`);
+            }
+
+            if (attachedSourceFile) {
+                const fileChip = `<div class="flex items-center gap-2 mb-1.5 text-xs text-blue-400 font-semibold"><i class="fab fa-python"></i> Source file attached: <span class="text-gray-300 font-mono">${attachedSourceFile.name}</span></div>`;
+                visualChatDisplayMessage = fileChip + (visualChatDisplayMessage || `<span class="italic text-gray-400">Reviewing attached source file...</span>`);
+            }
+
+            if (processedPromptText || !selectedImageBase64) {
+                contentPayload.push({
+                    "type": "text",
+                    "text": processedPromptText || "Analyze the attached material."
+                });
+            }
+
+            appendMessage('user', visualChatDisplayMessage);
+
+            DOM.input.value = '';
+            DOM.input.style.height = 'auto';
+            DOM.sendBtn.disabled = true;
+
+            chatHistory.push({ role: "user", content: contentPayload });
+            if (chatHistory.length > MAX_HISTORY_MESSAGES) {
+                chatHistory = chatHistory.slice(-MAX_HISTORY_MESSAGES);
+            }
+
+            chatSessionsRegistry[currentSessionId].history = chatHistory;
+            saveSessionsToLocalStorage();
+
+            selectedImageBase64 = null;
+            imageInput.value = '';
+            imagePreview.classList.add('hidden');
+            mediaPreviewContainer.classList.replace('flex', 'hidden');
+
+            clearAttachedSourceFile();
+
+            const aiNode = appendMessage('assistant', '<i class="fas fa-circle-notch fa-spin text-purple-400"></i> Parsing context data streams...');
+
+            try {
+                let activePayloadPackage = [];
+                activePayloadPackage.push({
+                    role: "system",
+                    content: "You are Tahar Chatbot, an analytical assistant tracking mixed multimodal user elements across video feeds, images, document context attachments, and source code files. CRITICAL RULES:\n1) If text is provided under '[BACKGROUND CONTEXT FROM UPLOADED PDF DOCUMENT]', the user's PDF text has already been successfully extracted and provided to you by the browser. Do NOT give a generic disclaimer saying you cannot read or process PDFs. You have the text right in front of you. Answer user questions directly using that text content.\n2) If a source file is attached, the full file contents are provided inline under '[ATTACHED SOURCE FILE: ...]'. Read it carefully and answer using that exact code.\n3) When the user asks for Python code (or any code), ALWAYS wrap the complete runnable script in a single fenced ```python code block (or the appropriate language) so the chatbot UI can render a 'Download .py' button. Include all imports, helper functions, a main() entry point, and an `if __name__ == \"__main__\":` guard. If you embed a filename hint, place it on the first 5 lines using `# filename: my_script.py` so the download uses that name."
+                });
+
+                activePayloadPackage.push(...chatHistory);
+
+                const keyForRequest = getApiKey();
+                if (!keyForRequest) throw new Error("Missing API key");
+
+                const serverResponseData = await fetchWithRetry(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${keyForRequest}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: QWEN_MODEL,
+                        messages: activePayloadPackage,
+                        temperature: 0.3
+                    })
+                });
+
+                const botOutputStringText = serverResponseData.choices[0].message.content;
+                aiNode.innerHTML = DOMPurify.sanitize(marked.parse(botOutputStringText));
+                if (typeof Prism !== 'undefined') Prism.highlightAllUnder(aiNode);
+                decorateCodeBlocks(aiNode);
+
+                chatHistory.push({ role: "assistant", content: botOutputStringText });
+
+                chatSessionsRegistry[currentSessionId].history = chatHistory;
+                saveSessionsToLocalStorage();
+
+            } catch (err) {
+                console.error(err);
+                const isAuth = /401|403|auth|key/i.test(String(err && err.message));
+                aiNode.innerHTML = `<span class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>${isAuth ? "API key rejected (401/403). Open the <b>API Key</b> button and paste a valid Aliyun DashScope key." : "Transmission fault. Please check key configuration structures or API limits."}</span>`;
+                chatHistory.pop();
+                chatSessionsRegistry[currentSessionId].history = chatHistory;
+                saveSessionsToLocalStorage();
+            } finally {
+                DOM.container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                evaluateButtonStatus();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSessionsFromLocalStorage();
+            updateKeyBadge();
+            if (!getApiKey()) {
+                setTimeout(openKeyModal, 400);
+            }
+        });
+    </script>
+</body>
+</html>
